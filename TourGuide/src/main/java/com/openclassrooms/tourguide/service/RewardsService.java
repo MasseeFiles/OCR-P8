@@ -1,6 +1,8 @@
 package com.openclassrooms.tourguide.service;
 
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.springframework.stereotype.Service;
 
@@ -9,8 +11,8 @@ import gpsUtil.location.Attraction;
 import gpsUtil.location.Location;
 import gpsUtil.location.VisitedLocation;
 import rewardCentral.RewardCentral;
-import com.openclassrooms.tourguide.user.User;
-import com.openclassrooms.tourguide.user.UserReward;
+import com.openclassrooms.tourguide.domain.User;
+import com.openclassrooms.tourguide.domain.UserReward;
 
 @Service
 public class RewardsService {
@@ -35,20 +37,39 @@ public class RewardsService {
 	public void setDefaultProximityBuffer() {
 		proximityBuffer = defaultProximityBuffer;
 	}
-	
+
+
+	//but pour eviter la concurrentmodification exception :  use a fail-safe iterator.
 	public void calculateRewards(User user) {
 		List<VisitedLocation> userLocations = user.getVisitedLocations();
+		Iterator<VisitedLocation> iteratorVisitedLocation = userLocations.iterator();
+
 		List<Attraction> attractions = gpsUtil.getAttractions();
-		
-		for(VisitedLocation visitedLocation : userLocations) {
-			for(Attraction attraction : attractions) {
-				if(user.getUserRewards().stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() == 0) {
+		Iterator<Attraction> iteratorAttraction = attractions.iterator();
+
+		List<UserReward> userRewards = user.getUserRewards();
+		List<UserReward> copyOfUserRewards = new CopyOnWriteArrayList<>(userRewards);
+
+		while (iteratorVisitedLocation.hasNext()) {
+			VisitedLocation visitedLocation = iteratorVisitedLocation.next();
+			while (iteratorAttraction.hasNext()) {
+				Attraction attraction = iteratorAttraction.next();
+
+				if(copyOfUserRewards.stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() == 0) {
 					if(nearAttraction(visitedLocation, attraction)) {
-						user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
+						copyOfUserRewards.add(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
+
+//		for(VisitedLocation visitedLocation : userLocations) {
+//			for(Attraction attraction : attractions) {
+//				if(copyOfUserRewards.stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() == 0) {	//methode d'iteration
+//					if(nearAttraction(visitedLocation, attraction)) {
+//						copyOfUserRewards.add(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));		//methode de modification
 					}
 				}
 			}
 		}
+		user.setUserRewards(copyOfUserRewards);
+
 	}
 	
 	public boolean isWithinAttractionProximity(Attraction attraction, Location location) {
