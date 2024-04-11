@@ -70,9 +70,10 @@ public class User {
 	}
 
 	public void addUserReward(UserReward userReward) {
-		if(userRewards.stream().filter(r -> !r.attraction.attractionName.equals(userReward.attraction)).count() == 0) {
-			userRewards.add(userReward);
-		}
+		//TODO : modification pour permettre 2e boucle dans calculateReward
+//		if(userRewards.stream().filter(r -> !r.attraction.attractionName.equals(userReward.attraction)).count() == 0) {
+		userRewards.add(userReward);
+//		}
 	}
 	
 	public List<UserReward> getUserRewards() {

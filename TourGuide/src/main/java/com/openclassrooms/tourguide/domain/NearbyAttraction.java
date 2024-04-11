@@ -61,8 +61,8 @@ public class NearbyAttraction implements Comparable<NearbyAttraction>{
     }
 
     /**
-     * Implementation du comparateur utilisé pour
-     * pour methode getFiveNearestAttractions()
+     * Implementation de la methode compareTo() utilisé par  la
+     * methode sort() dans la methode getFiveNearestAttractions()
      * @see com.openclassrooms.tourguide.service.TourGuideService
      */
     @Override

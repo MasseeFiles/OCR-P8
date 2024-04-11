@@ -84,18 +84,20 @@ public class TourGuideService {
 		return providers;
 	}
 
-	public VisitedLocation trackUserLocation(User user) {
+	public VisitedLocation trackUserLocation(User user) {	//point d'entree1 pour amelioration (plus methodes internes)
 		VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
 		user.addToVisitedLocations(visitedLocation);
-		rewardsService.calculateRewards(user);
+		//TODO : pourquoi lancer cette methode ici?
+//		rewardsService.calculateRewards(user);
 		return visitedLocation;
 	}
 
-	// Modifications pour le todo du TourGuideController
+	// Modifications pour la recherche des 5 nearbyattractions
 		public List<NearbyAttraction> getFiveNearestAttractions(VisitedLocation visitedLocation) {
 			List<NearbyAttraction> nearbyAttractionListToReturn = new ArrayList<>();	//valeur de retour
 			List<NearbyAttraction> nearbyAttractionListToSort = new ArrayList<>();
 
+			//TODO : possibilité de transformer en Stream???
 			for (Attraction attraction : gpsUtil.getAttractions()) {
 				Location attractionLocation = new Location(attraction.latitude, attraction.longitude);
 				Double attractionDistance = rewardsService.getDistance(visitedLocation.location, attractionLocation);
@@ -111,7 +113,7 @@ public class TourGuideService {
 			}
 			/**
 			 * Implementation d'un comparateur sur distance attraction-user
-			 * dans la classe NearbyAttraction
+			 * dans la classe NearbyAttraction pour implementationn de methode sort
 			 * @see NearbyAttraction
 			 */
 			Collections.sort(nearbyAttractionListToSort);
