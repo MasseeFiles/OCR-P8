@@ -32,6 +32,9 @@ public class TestTourGuideService {
         assertEquals(visitedLocation.userId, user.getUserId());
     }
 
+
+
+
     @Test
     public void addUser() {
         GpsUtil gpsUtil = new GpsUtil();
@@ -100,6 +103,7 @@ public class TestTourGuideService {
         User user = new User(UUID.randomUUID(), "jon", "000", "jon@tourGuide.com");
         VisitedLocation visitedLocation = tourGuideService.trackUserLocation(user);
 
+        //WHEN
         List<NearbyAttraction> nearbyAttractions = tourGuideService.getFiveNearestAttractions(visitedLocation);
 
         tourGuideService.tracker.stopTracking();

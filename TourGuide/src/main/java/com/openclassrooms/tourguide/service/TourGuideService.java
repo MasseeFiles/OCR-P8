@@ -66,7 +66,7 @@ public class TourGuideService {
 	}
 
 	public List<User> getAllUsers() {
-		return internalUserMap.values().stream().collect(Collectors.toList());
+		return internalUserMap.values().parallelStream().collect(Collectors.toList());		//TODO : modification stream en parallel stream
 	}
 
 	public void addUser(User user) {
@@ -87,7 +87,7 @@ public class TourGuideService {
 	public VisitedLocation trackUserLocation(User user) {	//point d'entree1 pour amelioration (plus methodes internes)
 		VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
 		user.addToVisitedLocations(visitedLocation);
-		//TODO : pourquoi lancer cette methode ici?
+//		//TODO : pourquoi lancer cette methode ici?
 //		rewardsService.calculateRewards(user);
 		return visitedLocation;
 	}
@@ -125,6 +125,7 @@ public class TourGuideService {
 			}
 		return nearbyAttractionListToReturn;
 	}
+	//Ancienne methode getnearbyattractions remplacée par getfivenearestattractions
 //	public List<Attraction> getNearByAttractions(VisitedLocation visitedLocation) {
 //		List<Attraction> nearbyAttractions = new ArrayList<>();
 //		for (Attraction attraction : gpsUtil.getAttractions()) {	//fournit liste de tt attractions
@@ -132,7 +133,6 @@ public class TourGuideService {
 //				nearbyAttractions.add(attraction);
 //			}
 //		}
-//
 //		return nearbyAttractions;
 //	}
 

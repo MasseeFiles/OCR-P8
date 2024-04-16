@@ -9,7 +9,6 @@ import gpsUtil.GpsUtil;
 import gpsUtil.location.Attraction;
 import gpsUtil.location.VisitedLocation;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import rewardCentral.RewardCentral;
 
 import java.util.Date;
@@ -20,11 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRewardsService {
-    @Mock
-    User userTest;
 
     @Test
-    public void userGetRewards() {    //classe User
+    public void userGetRewards() {
         GpsUtil gpsUtil = new GpsUtil();
         RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
 
@@ -33,9 +30,13 @@ public class TestRewardsService {
 
         User user = new User(UUID.randomUUID(), "jon", "000", "jon@tourGuide.com");
         Attraction attraction = gpsUtil.getAttractions().get(0);
-        user.addToVisitedLocations(new VisitedLocation(user.getUserId(), attraction, new Date()));
-        tourGuideService.trackUserLocation(user);
-        List<UserReward> userRewards = user.getUserRewards();    //
+        user.addToVisitedLocations(new VisitedLocation(user.getUserId(), attraction, new Date()));  //on met dans la list<visitedLocation> du user la location d'une seule attraction
+
+        //WHEN
+        rewardsService.calculateRewards(user);
+
+        List<UserReward> userRewards = user.getUserRewards();
+
         tourGuideService.tracker.stopTracking();
         assertTrue(userRewards.size() == 1);
     }
