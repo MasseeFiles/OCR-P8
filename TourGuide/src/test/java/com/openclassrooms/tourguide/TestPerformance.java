@@ -45,7 +45,6 @@ public class TestPerformance {
 	 * TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()));
 	 */
 
-//	@Disabled
 	@Test
 	public void highVolumeTrackLocation() {
 		GpsUtil gpsUtil = new GpsUtil();
@@ -56,7 +55,7 @@ public class TestPerformance {
 		TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
 
 		List<User> allUsers = new ArrayList<>();
-		allUsers = tourGuideService.getAllUsers();
+		allUsers = tourGuideService.getAllUsers();	//a accelerer???
 
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
@@ -70,8 +69,7 @@ public class TestPerformance {
 				+ TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()) + " seconds.");
 		assertTrue(TimeUnit.MINUTES.toSeconds(15) >= TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()));	//delai max de 15 minutes pour tt traitements
 	}
-//@Disabled
-////depend de methode calculaterewards
+
 	@Test
 	public void highVolumeGetRewards() {
 		GpsUtil gpsUtil = new GpsUtil();

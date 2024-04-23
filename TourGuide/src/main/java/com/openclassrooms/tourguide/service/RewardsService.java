@@ -13,7 +13,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -42,87 +45,108 @@ public class RewardsService {
         proximityBuffer = defaultProximityBuffer;
     }
 
-    //But de la methode : calcule les recommendations à envoyer au user (list userrewards dans l'objet user) en fonction de ses visitedlocations
+    //But de la methode : calcule les recommendations à envoyer au user (list userRewards dans l'objet user) en fonction de ses visitedLocations
     public void calculateRewards(User user) {
         List<VisitedLocation> userLocations = user.getVisitedLocations();
         List<Attraction> attractions = gpsUtil.getAttractions();
-        List<Attraction> attractionsNotVisited = new ArrayList<>();
         List<Attraction> reachableAttractions = new ArrayList<>();
-        Map<Attraction, VisitedLocation> mapToSort = new HashMap<>();
+        Map<Attraction, VisitedLocation> map = new HashMap<>();   //utilisation de concurenthashmap???
         List<UserReward> userRewards = user.getUserRewards();
 
-        //on recupere les attractions à portée de chaque VisitedLocation du User (nearAttraction) et on les met dans une map et dans une liste
         //poss de combiner les 2 boucles visited et attractions - fin de projet
+
+        //ETAPE 1  : on recupere les attractions à portée de chaque VisitedLocation du User (nearAttraction) et on les met dans une map et dans une liste
+
+        //       //solution avec stream
+//        userLocations.parallelStream().forEach(visitedLocation -> { //mise en stream de la collection userLocations
+//                    attractions.parallelStream().forEach(attraction -> {
+//                        if (nearAttraction(visitedLocation, attraction)) {
+//                            reachableAttractions.add(attraction);
+//                            map.put(attraction, visitedLocation);
+//                        }
+//                    });
+//                });
+
+        //solution sans stream
         for (VisitedLocation visitedLocation : userLocations) {
-            attractions.parallelStream().forEach(attraction -> {
+            for (Attraction attraction : attractions) {
                 if (nearAttraction(visitedLocation, attraction)) {
                     reachableAttractions.add(attraction);
-                    mapToSort.put(attraction, visitedLocation);
+                    map.put(attraction, visitedLocation);
                 }
-            } );
-//          for (VisitedLocation visitedLocation : userLocations) {
-//              for (Attraction attraction : attractions) {
-//                if (nearAttraction(visitedLocation, attraction)) {
-//                    reachableAttractions.add(attraction);
-//                    mapToSort.put(attraction, visitedLocation);
-//                }
-//            }
-        }
-        //on enleve de la map obtenue  les attractions déjà visitées
-        reachableAttractions.parallelStream().forEach(attraction -> {
-            if (userRewards.stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() > 0) {
-                mapToSort.remove(attraction);
             }
-        } );
-//        for (Attraction attraction : reachableAttractions) {
-//            if (userRewards.stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() > 0) { //attraction visitée
-//                mapToSort.remove(attraction);
-//            }
-//        }
+        }
 
-        //on met à jour les userrewards du user avec les données de la map precedemment filtrée
-        //ajouter ici completablefuture
-        mapToSort.forEach((key, value) -> {
-            Attraction attraction = (Attraction) key;
-            VisitedLocation visitedLocation = (VisitedLocation) value;
-            user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user))); //partie a isoler pour concurent exception
-        });
-//        Stream<Map.Entry<Attraction, VisitedLocation>> streamToSort = mapToSort.entrySet().parallelStream();
-//        streamToSort.forEach((key, value) -> {
-////            Attraction attraction = (Attraction) key;
-////            VisitedLocation visitedLocation = (VisitedLocation) value;
-//            user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user))); //partie a isoler pour concurent exception
+//       //ETAPE 2 : on enleve de la map obtenue les attractions déjà visitées
+
+//        //solution avec parallel stream
+//        reachableAttractions.forEach(attraction -> {
+//            if (userRewards.parallelStream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() > 0) {
+//                map.remove(attraction);
+//            }
 //        });
+
+//        //ETAPE 3 : on met à jour les userRewards du user avec les données de la map precedemment filtrée
+
+//        //solution sans stream
+//        map.forEach((key, value) -> {
+//            Attraction attraction = (Attraction) key;
+//            VisitedLocation visitedLocation = (VisitedLocation) value;
+//            user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user))); //methode collect()???
+//        });
+//    }
+
+        //          //solution avec stream
+//        Stream<Map.Entry<Attraction, VisitedLocation>> stream = map.entrySet().stream();        //map transformée en set entryset(), set transformé en stream donc collection stream()
+//        stream.parallel().forEach(attractionVisitedLocationEntry -> { //transformation en stream parallel
+//            Attraction attraction = attractionVisitedLocationEntry.getKey();
+//            VisitedLocation visitedLocation = attractionVisitedLocationEntry.getValue();
+//            user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
+//        });
+//    }
+
+//        //Solution avec Completable Future : on lie les ETAPES 2 et 3
+
+        //CompletableFuture - methode 1 - try/catch
+        //futureResult représente le resultat de l'étape 2
+        CompletableFuture<Map> futureResult = CompletableFuture.supplyAsync(() -> {   //bizarre la methode supplyASync ne declenche pas seule l'execution du completable
+            try {   //supplier
+                reachableAttractions.forEach(attraction -> {
+                    if (userRewards.stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() > 0) {
+                        map.remove(attraction);
+                    }
+                });
+            } catch (Exception e) {  //exception pour savoir si thread s'arrete - A VOIR TYPE D'EXCEPTION PLUS PERTINENT
+                throw new RuntimeException(e);
+            }
+            return map;
+        });
+
+//        //  //CompletableFuture - methode 2 - executor
+//        CompletableFuture<Map> futureResult = new CompletableFuture<>();        //futureResult représente le resultat de l'étape 2
+//
+//        Executors.newCachedThreadPool().submit(() -> {
+////            reachableAttractions.forEach(attraction -> {
+//            reachableAttractions.parallelStream().forEach(attraction -> {
+//                if (userRewards.stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() > 0) {
+//                    map.remove(attraction);
+//                }
+//            });
+//            return futureResult;
+//        });
+
+        futureResult.complete(map);    //declenchement de l'execution du completable sans la methode Async()- execution asunchrone quand meme???
+
+        futureResult.thenAccept((mapFiltered) -> {      //dès que future est pret, on declenche l'étape finale (utilisation de methode thenAccept() + addUserRewardsFromMap() qui réalise l'etape 3
+            addUserRewardsFromMap(mapFiltered, user);
+        });
 
     }
 
-    //Ancienne methode renvoyant la concurrentexception
-
-//			for(VisitedLocation visitedLocation : userLocations) {
-//		for(Attraction attraction : attractions) {
-//			if(user.getUserRewards().stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() == 0) {
-//				if(nearAttraction(visitedLocation, attraction)) {
-//					user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
-//				}
-//			}
-//		}
-//	}
 
 
-//          //Autre solution
-    //        //on regarde si user a deja recu un reward de cette attraction - comparaison données du user (userRewards) vs données de l'attraction à verifier (iteration sur les 26 attractions
-//        for (Attraction attraction : attractions) {
-//            if (user.getUserRewards().stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() == 0) {
-//                attractionsNotVisited.add(attraction);
-//            }
-//        }
-//        //nouvelle boucle pour eviter la Concurrent exception : On regarde dans la boucle si le user est proche de l'attraction à verifier (verification avec currentlocation)
-//        for (Attraction attraction : attractionsNotVisited) {
-//            if (nearAttraction(currentLocation, attraction)) {
-//                user.addUserReward(new UserReward(currentLocation, attraction, getRewardPoints(attraction, user)));
-//            }
-//        }
-//    }
+        //autre : appel a la method sortMap() implémentée plus bas
+        //        CompletableFuture<Map> futureResult = sortMap(reachableAttractions, user.getUserRewards(), map);
 
     public boolean isWithinAttractionProximity(Attraction attraction, Location location) {
         return getDistance(attraction, location) > attractionProximityRange ? false : true;
@@ -150,4 +174,28 @@ public class RewardsService {
         return statuteMiles;
     }
 
+    private CompletableFuture<Map> sortMap(List<Attraction> reachableAttractions, List<UserReward> userRewards, Map<Attraction, VisitedLocation> map) {
+        //supplyAsync() permet d'executer la tache definie dans la lambda de facon asyncrone
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                reachableAttractions.forEach(attraction -> {
+                    if (userRewards.stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() > 0) {
+                        map.remove(attraction);
+                    }
+                });
+            } catch (Exception e) {  //exception pour savoir si thread s'arrete
+                throw new RuntimeException(e);
+            }
+            return map;
+        });
+    }
+    private void addUserRewardsFromMap (Map<Attraction, VisitedLocation> mapFiltered, User user) {
+        mapFiltered.forEach((key, value) -> {
+            Attraction attraction = (Attraction) key;
+            VisitedLocation visitedLocation = (VisitedLocation) value;
+            user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
+        });
+    }
 }
+
+
