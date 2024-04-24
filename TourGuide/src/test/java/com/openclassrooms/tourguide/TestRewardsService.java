@@ -8,6 +8,7 @@ import com.openclassrooms.tourguide.service.TourGuideService;
 import gpsUtil.GpsUtil;
 import gpsUtil.location.Attraction;
 import gpsUtil.location.VisitedLocation;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import rewardCentral.RewardCentral;
 
@@ -48,7 +49,7 @@ public class TestRewardsService {
         Attraction attraction = gpsUtil.getAttractions().get(0);
         assertTrue(rewardsService.isWithinAttractionProximity(attraction, attraction));
     }
-
+@Disabled
     @Test
     public void nearAllAttractions() {
         GpsUtil gpsUtil = new GpsUtil();

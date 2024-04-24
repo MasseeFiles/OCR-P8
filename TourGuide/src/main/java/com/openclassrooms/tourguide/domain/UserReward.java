@@ -26,5 +26,11 @@ public class UserReward {
 	public int getRewardPoints() {
 		return rewardPoints;
 	}
-	
+
+	@Override
+	public String toString() {
+		return "UserReward{" +
+				"attraction=" + attraction +
+				'}';
+	}
 }
