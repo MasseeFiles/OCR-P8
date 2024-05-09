@@ -84,10 +84,11 @@ public class TourGuideService {
 		return providers;
 	}
 
-	public VisitedLocation trackUserLocation(User user) {	//point d'entree1 pour amelioration (plus methodes internes)
+	public VisitedLocation trackUserLocation(User user) {
 		VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
-		user.addToVisitedLocations(visitedLocation);
-//		//TODO : pourquoi lancer cette methode ici?
+				//TODO : pourquoi lancer cette methode ici?
+//
+//		user.addToVisitedLocations(visitedLocation);
 //		rewardsService.calculateRewards(user);
 		return visitedLocation;
 	}

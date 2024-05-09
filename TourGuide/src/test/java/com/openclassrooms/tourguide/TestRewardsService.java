@@ -36,10 +36,10 @@ public class TestRewardsService {
         //WHEN
         rewardsService.calculateRewards(user);
 
-        List<UserReward> userRewards = user.getUserRewards();
-
         tourGuideService.tracker.stopTracking();
-        assertTrue(userRewards.size() == 1);
+
+        List<UserReward> userRewardResult = user.getUserRewards();
+        assertTrue(userRewardResult.size() == 1);
     }
 
     @Test
@@ -49,14 +49,14 @@ public class TestRewardsService {
         Attraction attraction = gpsUtil.getAttractions().get(0);
         assertTrue(rewardsService.isWithinAttractionProximity(attraction, attraction));
     }
-@Disabled
+//@Disabled
     @Test
     public void nearAllAttractions() {
         GpsUtil gpsUtil = new GpsUtil();
         RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
         rewardsService.setProximityBuffer(Integer.MAX_VALUE);    //valeur max d'un integer - rayon max attraction / userLocation, donc toutes les attractions sont couvertes
 
-        InternalTestHelper.setInternalUserNumber(1);
+        InternalTestHelper.setInternalUserNumber(0);
         TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
 
         rewardsService.calculateRewards(tourGuideService.getAllUsers().get(0));

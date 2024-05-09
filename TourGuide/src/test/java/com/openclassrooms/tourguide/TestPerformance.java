@@ -51,19 +51,23 @@ public class TestPerformance {
 		RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
 		// Users should be incremented up to 100,000, and test finishes within 15
 		// minutes
-		InternalTestHelper.setInternalUserNumber(1000);
+		InternalTestHelper.setInternalUserNumber(100000);
 		TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
 
 		List<User> allUsers = new ArrayList<>();
-		allUsers = tourGuideService.getAllUsers();	//a accelerer???
+		allUsers = tourGuideService.getAllUsers();
 
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
-		for (User user : allUsers) {
-			tourGuideService.trackUserLocation(user);	//determine position d'un user à instant T
-		}
+
+		allUsers.parallelStream().forEach( user ->
+				tourGuideService.trackUserLocation(user)
+		);
+//		for (User user : allUsers) {	//essayer d'ameliorer avec parallel - 1 thread par user
+//			tourGuideService.trackUserLocation(user);	//determine position d'un user à instant T
+//		}
 		stopWatch.stop();
-		tourGuideService.tracker.stopTracking();
+		tourGuideService.tracker.stopTracking();	//fin du thread tracker
 
 		System.out.println("highVolumeTrackLocation: Time Elapsed: "
 				+ TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()) + " seconds.");
@@ -77,7 +81,7 @@ public class TestPerformance {
 
 		// Users should be incremented up to 100,000, and test finishes within 20
 		// minutes
-		InternalTestHelper.setInternalUserNumber(100000);
+		InternalTestHelper.setInternalUserNumber(10);
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
 		TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);

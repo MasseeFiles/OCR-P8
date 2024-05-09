@@ -32,9 +32,6 @@ public class TestTourGuideService {
         assertEquals(visitedLocation.userId, user.getUserId());
     }
 
-
-
-
     @Test
     public void addUser() {
         GpsUtil gpsUtil = new GpsUtil();
