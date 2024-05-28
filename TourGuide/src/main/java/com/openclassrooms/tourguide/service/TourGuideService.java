@@ -86,19 +86,13 @@ public class TourGuideService {
 
 	public VisitedLocation trackUserLocation(User user) {
 		VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
-				//TODO : pourquoi lancer cette methode ici?
-//
-//		user.addToVisitedLocations(visitedLocation);
-//		rewardsService.calculateRewards(user);
 		return visitedLocation;
 	}
 
-	// Modifications pour la recherche des 5 nearbyattractions
 		public List<NearbyAttraction> getFiveNearestAttractions(VisitedLocation visitedLocation) {
 			List<NearbyAttraction> nearbyAttractionListToReturn = new ArrayList<>();	//valeur de retour
 			List<NearbyAttraction> nearbyAttractionListToSort = new ArrayList<>();
 
-			//TODO : possibilité de transformer en Stream???
 			for (Attraction attraction : gpsUtil.getAttractions()) {
 				Location attractionLocation = new Location(attraction.latitude, attraction.longitude);
 				Double attractionDistance = rewardsService.getDistance(visitedLocation.location, attractionLocation);

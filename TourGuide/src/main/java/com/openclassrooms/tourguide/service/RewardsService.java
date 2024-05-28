@@ -9,20 +9,23 @@ import gpsUtil.location.VisitedLocation;
 import org.springframework.stereotype.Service;
 import rewardCentral.RewardCentral;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 @Service
 public class RewardsService {
     private static final double STATUTE_MILES_PER_NAUTICAL_MILE = 1.15077945;
     private final ExecutorService executor = Executors.newFixedThreadPool(100);
-    // proximity in miles
-    private int defaultProximityBuffer = 10;
-    private int proximityBuffer = defaultProximityBuffer;
-    private int attractionProximityRange = 200;
+    private int defaultAttractionProximityRange = 10;      //distance max attraction - visitedLocation (en miles)
+    private int attractionProximityRange = defaultAttractionProximityRange;       //distance max attraction - visitedLocation
+
     private final GpsUtil gpsUtil;
     private final RewardCentral rewardsCentral;
 
@@ -31,55 +34,63 @@ public class RewardsService {
         this.rewardsCentral = rewardCentral;
     }
 
-    public void setProximityBuffer(int proximityBuffer) {
-        this.proximityBuffer = proximityBuffer;
+    public void setAttractionProximityRange(int attractionProximityRange) {
+        this.attractionProximityRange = attractionProximityRange;
     }
 
-    public void setDefaultProximityBuffer() {
-        proximityBuffer = defaultProximityBuffer;
-    }
+    /*But de la methode : calcule les recommendations d'attractions à ajouter dans parametre
+     du user (list userRewards) en fonction de ses visitedLocations (critere de proximité) et s'il n'a pas
+     déjà visité l'attraction
+     */
 
-    //But de la methode : calcule les recommendations d'attractions à envoyer au user (list userRewards) en fonction de ses visitedLocations et s'il na pas déjà visité l'attraction
-    public void calculateRewards(User user) {
+        public void calculateRewards(User user) {
+//    public CompletableFuture<Void> calculateRewards(User user) {
+
         List<VisitedLocation> userVisitedLocations = user.getVisitedLocations();
         List<Attraction> attractions = gpsUtil.getAttractions();
-        List<Attraction> reachableAttractions = new ArrayList<>();
+        List<Attraction> attractionsInRange = new ArrayList<>();
         Map<Attraction, VisitedLocation> map = new HashMap<>();
         List<UserReward> userRewards = user.getUserRewards();
 
-        //Etape 1 : filtrage des attractions à proximité + method peek
-// flatMap : chaque visitedLocation est representée dans un nouveau stream qui filtre en fonction de la proximité
-// en utilisant la list attractions et ajoute l'attraction correspondante dans le nouveau stream
-        reachableAttractions.addAll(userVisitedLocations.stream()
+        //Etape 1 : filtrage des attractions suffisamment proches + method peek
+            filterAttractionsInRange(userVisitedLocations, attractions, attractionsInRange, map);
+
+        //Etape 2 : filtrage attractions deja visitées
+        CompletableFuture<Void> future = getVoidCompletableFuture(attractionsInRange, map, userRewards);
+
+        //Etape 3 : ajout dans userRewards des attractions filtrées
+            addRewardsFromFuture(user, map, future);
+        }
+
+    private void filterAttractionsInRange
+            (List<VisitedLocation> userVisitedLocations,
+             List<Attraction> attractions,
+             List<Attraction> attractionsInRange,
+             Map<Attraction, VisitedLocation> map) {
+        attractionsInRange.addAll(userVisitedLocations.stream()
                 .flatMap(visitedLocation ->
-                    attractions.parallelStream()
-                            .filter(attraction -> nearAttraction(visitedLocation, attraction))
-                            .peek(attraction -> map.put(attraction, visitedLocation))
+                        attractions.parallelStream()
+                                .filter(attraction -> isWithinAttractionProximity(attraction, visitedLocation.location))
+                                .peek(attraction -> map.put(attraction, visitedLocation))
                 )
                 .collect(Collectors.toList())
         );
+    }
 
-//      //Etape 1 sans Stream
-//        for (VisitedLocation visitedLocation : userLocations) {
-//            for (Attraction attraction : attractions) {
-//                if (nearAttraction(visitedLocation, attraction)) {
-//                    reachableAttractions.add(attraction);
-//                    map.put(attraction, visitedLocation);
-//                }
-//            }
-//        }
-
-        //Etape 2 : filtrage attractions deja visitées
+    private static CompletableFuture<Void> getVoidCompletableFuture(List<Attraction> attractionsInRange, Map<Attraction, VisitedLocation> map, List<UserReward> userRewards) {
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            reachableAttractions.parallelStream()
+            attractionsInRange.parallelStream()
                     .filter(attraction -> userRewards.parallelStream()
                             .anyMatch(reward -> reward.attraction.attractionName.equals(attraction.attractionName)))
                     .forEach(attraction -> map.remove(attraction));
         });
-
-//      //Etape 3 : ajout dans userRewards des attractions filtrées
+        return future;
+    }
+    
+    private void addRewardsFromFuture(User user, Map<Attraction, VisitedLocation> map, CompletableFuture<Void> future) {
         future.thenRun(() -> {
-            map.entrySet().parallelStream()
+
+        map.entrySet().parallelStream()
                     .forEach(entry -> {
                         Attraction attraction = (Attraction) entry.getKey();
                         VisitedLocation visitedLocation = (VisitedLocation) entry.getValue();
@@ -89,39 +100,9 @@ public class RewardsService {
         });
     }
 
-//      //Etape 3 sans stream
-//        map.forEach((key, value) -> {
-//            Attraction attraction = (Attraction) key;
-//            VisitedLocation visitedLocation = (VisitedLocation) value;
-//            user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user))); //methode collect()???
-//        });
-//    }
-
-
-//// solution avec un stream unique
-//        List<UserReward> newUserRewards = new CopyOnWriteArrayList<>();
-//
-//        CopyOnWriteArrayList<UserReward> userRewards = new CopyOnWriteArrayList<>(user.getUserRewards());
-//        CopyOnWriteArrayList<VisitedLocation> visitedLocations = new CopyOnWriteArrayList<>(user.getVisitedLocations());
-//        newUserRewards = visitedLocations.parallelStream().flatMap(visitedLocation ->  //mise en stream de la collection userLocations
-//                    attractions.stream()
-//                    .filter(attraction -> nearAttraction(visitedLocation, attraction))
-//                    .filter(attraction -> userRewards.stream().noneMatch(r -> r.attraction.attractionName.equals(attraction.attractionName)))
-//                    .map(attraction -> new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)))
-//        ).collect(Collectors.toList());
-//
-//
-//        synchronized(user.getUserRewards()) {user.getUserRewards().addAll(newUserRewards);}
-//    }
-
-
-
+    
     public boolean isWithinAttractionProximity(Attraction attraction, Location location) {
         return getDistance(attraction, location) > attractionProximityRange ? false : true;
-    }
-
-    private boolean nearAttraction(VisitedLocation visitedLocation, Attraction attraction) {
-        return getDistance(attraction, visitedLocation.location) > proximityBuffer ? false : true;
     }
 
     private int getRewardPoints(Attraction attraction, User user) {

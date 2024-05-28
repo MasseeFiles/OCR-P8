@@ -118,7 +118,6 @@ public class TestTourGuideService {
         User user = new User(UUID.randomUUID(), "jon", "000", "jon@tourGuide.com");
 
         List<Provider> providers = tourGuideService.getTripDeals(user);
-//correction methode getprice() TripPricer 10 vers 5 excpected
         tourGuideService.tracker.stopTracking();
         assertEquals(5, providers.size());
     }
