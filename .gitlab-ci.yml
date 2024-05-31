@@ -46,7 +46,7 @@ TestRewardsService-job:
     - echo "Running unit test - TestRewardsService..."
     - mvn -Dtest=TestRewardsService test -f $POM_FILE_PATH
 
-.performanceTests-job:
+performanceTests-job:
   stage: test
   script:
     - mvn install:install-file -Dfile=libs/gpsUtil.jar -DgroupId=gpsUtil -DartifactId=gpsUtil -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
