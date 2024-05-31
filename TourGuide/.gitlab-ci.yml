@@ -1,0 +1,75 @@
+# Fichier GitLab de configuration du pipeline CI/CD - projet OCR 8
+
+stages:
+  - build
+  - test
+  - package
+
+# Image par defaut utilisée par chaque job pour générer son container
+default:
+  image: maven:latest
+
+variables:
+  POM_FILE_PATH: "TourGuide/pom.xml"
+
+build_job:
+  stage: build
+  script:
+    - echo "Compiling project with Maven..."
+    - mvn install:install-file -Dfile=libs/gpsUtil.jar -DgroupId=gpsUtil -DartifactId=gpsUtil -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+    - mvn install:install-file -Dfile=libs/RewardCentral.jar -DgroupId=rewardCentral -DartifactId=rewardCentral -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+    - mvn install:install-file -Dfile=libs/TripPricer.jar -DgroupId=tripPricer -DartifactId=tripPricer -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+
+    - mvn compile -f $POM_FILE_PATH
+
+TestTourGuideService-job:
+  stage: test
+  script:
+    - mvn install:install-file -Dfile=libs/gpsUtil.jar -DgroupId=gpsUtil -DartifactId=gpsUtil -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+    - mvn install:install-file -Dfile=libs/RewardCentral.jar -DgroupId=rewardCentral -DartifactId=rewardCentral -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+    - mvn install:install-file -Dfile=libs/TripPricer.jar -DgroupId=tripPricer -DartifactId=tripPricer -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+
+    - mvn compile -f $POM_FILE_PATH
+
+    - echo "Running unit test - TestTourGuideService..."
+    - mvn -Dtest=TestTourGuideService test -f $POM_FILE_PATH
+
+TestRewardsService-job:
+  stage: test
+  script:
+    - mvn install:install-file -Dfile=libs/gpsUtil.jar -DgroupId=gpsUtil -DartifactId=gpsUtil -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+    - mvn install:install-file -Dfile=libs/RewardCentral.jar -DgroupId=rewardCentral -DartifactId=rewardCentral -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+    - mvn install:install-file -Dfile=libs/TripPricer.jar -DgroupId=tripPricer -DartifactId=tripPricer -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+
+    - mvn compile -f $POM_FILE_PATH
+
+    - echo "Running unit test - TestRewardsService..."
+    - mvn -Dtest=TestRewardsService test -f $POM_FILE_PATH
+
+.performanceTests-job:
+  stage: test
+  script:
+    - mvn install:install-file -Dfile=libs/gpsUtil.jar -DgroupId=gpsUtil -DartifactId=gpsUtil -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+    - mvn install:install-file -Dfile=libs/RewardCentral.jar -DgroupId=rewardCentral -DartifactId=rewardCentral -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+    - mvn install:install-file -Dfile=libs/TripPricer.jar -DgroupId=tripPricer -DartifactId=tripPricer -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+
+    - mvn compile -f $POM_FILE_PATH
+
+    - echo "Running performance tests - highVolumeTrackLocation() and highVolumeGetRewards(). This will take about 30 minutes..."
+    - mvn -Dtest=TestPerformance test -f $POM_FILE_PATH
+
+package-job:
+  stage : package
+  script:
+    - mvn install:install-file -Dfile=libs/gpsUtil.jar -DgroupId=gpsUtil -DartifactId=gpsUtil -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+    - mvn install:install-file -Dfile=libs/RewardCentral.jar -DgroupId=rewardCentral -DartifactId=rewardCentral -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+    - mvn install:install-file -Dfile=libs/TripPricer.jar -DgroupId=tripPricer -DartifactId=tripPricer -Dversion=1.0.0 -Dpackaging=jar -f $POM_FILE_PATH
+
+    - mvn clean package -f $POM_FILE_PATH
+
+  #artefact utilisé pour récuperer le fichier .jar du projet
+  artifacts:
+    paths:
+      - /builds/jbm857/ocr-p8-gitlab/TourGuide/target/tourguide-0.0.1-SNAPSHOT.jar
+
+
