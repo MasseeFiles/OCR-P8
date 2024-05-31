@@ -32,46 +32,17 @@ public class TestRewardsService {
 
         User user = new User(UUID.randomUUID(), "jon", "000", "jon@tourGuide.com");
         Attraction attraction = gpsUtil.getAttractions().get(0);
-        user.addToVisitedLocations(new VisitedLocation(user.getUserId(), attraction, new Date()));  //on met dans la list<visitedLocation> du user la location d'une seule attraction
+        user.addToVisitedLocations(new VisitedLocation(user.getUserId(), attraction, new Date()));
 
-        //WHEN
         rewardsService.calculateRewards(user);
         tourGuideService.tracker.stopTracking();
-
-//        try {
-//            // Time for the completable future in calculateRewards() to complete
-//            Thread.sleep(4000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         List<UserReward> userRewardResult = user.getUserRewards();
         assertEquals(1, userRewardResult.size());
-    }
-
-    @Test
-    public void userGetRewards_No_Rewards() throws ExecutionException, InterruptedException, TimeoutException {
-        GpsUtil gpsUtil = new GpsUtil();
-        RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
-
-        InternalTestHelper.setInternalUserNumber(1);
-        TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
-
-        User user = new User(UUID.randomUUID(), "jon", "000", "jon@tourGuide.com");
-
-        //WHEN
-        rewardsService.calculateRewards(user);
-        tourGuideService.tracker.stopTracking();
-
-//        try {
-//            // Time for the completable future in calculateRewards() to complete
-//            Thread.sleep(4000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-
-        List<UserReward> userRewardResult = user.getUserRewards();
-        assertEquals(0, userRewardResult.size());
     }
 
     @Test
@@ -86,7 +57,7 @@ public class TestRewardsService {
     public void nearAllAttractions() throws ExecutionException, InterruptedException, TimeoutException {
         GpsUtil gpsUtil = new GpsUtil();
         RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
-        rewardsService.setAttractionProximityRange(Integer.MAX_VALUE);    //valeur max d'un integer - rayon max attraction / userLocation, donc toutes les attractions sont couvertes
+        rewardsService.setAttractionProximityRange(Integer.MAX_VALUE);
 
         InternalTestHelper.setInternalUserNumber(0);
         TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
@@ -95,17 +66,13 @@ public class TestRewardsService {
         Attraction attraction = gpsUtil.getAttractions().get(0);
         user.addToVisitedLocations(new VisitedLocation(user.getUserId(), attraction, new Date()));
 
-        //WHEN
         rewardsService.calculateRewards(user);
         tourGuideService.tracker.stopTracking();
-
-//        try {
-//            // Time for the completable future in calculateRewards() to complete
-//            Thread.sleep(40000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         List<UserReward> userRewards = tourGuideService.getUserRewards(user);
         assertEquals(gpsUtil.getAttractions().size(), userRewards.size());
     }

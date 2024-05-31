@@ -2,7 +2,7 @@ package com.openclassrooms.tourguide.domain;
 
 import gpsUtil.location.Location;
 
-public class NearbyAttraction implements Comparable<NearbyAttraction>{
+public class NearbyAttraction implements Comparable<NearbyAttraction> {
     private String nearbyAttractionName;
     private Location nearbyAttractionLocation;
     private Location userLocation;
@@ -63,6 +63,7 @@ public class NearbyAttraction implements Comparable<NearbyAttraction>{
     /**
      * Implementation de la methode compareTo() utilisé par  la
      * methode sort() dans la methode getFiveNearestAttractions()
+     *
      * @see com.openclassrooms.tourguide.service.TourGuideService
      */
     @Override
